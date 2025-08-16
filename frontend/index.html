@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jupbox - Electron App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🚀 Jupbox</h1>
+            <p>Electron + Vanilla JS App</p>
+        </header>
+        
+        <main class="main-content">
+            
+            <div class="card spotify-card">
+                <div class="spotify-header">
+                    <h2>🎵 Spotify Player</h2>
+                    <div class="user-info" id="userInfo">
+                        <span id="userName">Loading...</span>
+                        <img id="userImage" src="" alt="User" class="user-avatar" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="spotify-player" id="spotifyPlayer">
+                    <div class="track-info">
+                        <div class="album-cover">
+                            <img id="albumCover" src="" alt="Album Cover" style="display: none;">
+                            <div id="noCover" class="no-cover">🎵</div>
+                        </div>
+                        <div class="track-details">
+                            <h3 id="trackName">No track playing</h3>
+                            <p id="trackArtist">Connect to Spotify</p>
+                            <p id="trackAlbum" class="album-name"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                        <span class="time-info">
+                            <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
+                        </span>
+                    </div>
+                    
+                    <div class="controls">
+                        <button id="prevBtn" class="control-btn" title="Previous">
+                            <span>⏮</span>
+                        </button>
+                        <button id="playPauseBtn" class="control-btn play-btn" title="Play/Pause">
+                            <span id="playIcon">▶</span>
+                        </button>
+                        <button id="nextBtn" class="control-btn" title="Next">
+                            <span>⏭</span>
+                        </button>
+                    </div>
+                    
+                    <div class="connection-status" id="connectionStatus">
+                        <span class="status-indicator" id="statusIndicator"></span>
+                        <span id="statusText">Connecting...</span>
+                    </div>
+                </div>
+            </div>
+            
+            
+            <div class="card camera-card">
+                <h2>📹 Camera Control</h2>
+                <div class="camera-info">
+                    <p><strong>Gesture Detection:</strong> <span id="cameraStatus">Connecting...</span></p>
+                    <p><strong>Instructions:</strong></p>
+                    <ul>
+                        <li>Show <strong>fist</strong> to <strong>PAUSE</strong> music</li>
+                        <li>Show <strong>palm</strong> to <strong>PLAY</strong> music</li>
+                    </ul>
+                </div>
+            </div>
+            
+            
+            <div class="card search-card">
+                <h2>🔍 Search Tracks</h2>
+                <div class="search-container">
+                    <input type="text" id="searchInput" placeholder="Search for songs..." class="search-input">
+                    <button id="searchBtn" class="search-btn">Search</button>
+                </div>
+                <div class="search-results" id="searchResults"></div>
+            </div>
+            
+            
+            <div class="card">
+                <h2>System Info</h2>
+                <div id="systemInfo">
+                    <p><strong>Platform:</strong> <span id="platform">Loading...</span></p>
+                    <p><strong>Node Version:</strong> <span id="nodeVersion">Loading...</span></p>
+                    <p><strong>Electron Version:</strong> <span id="electronVersion">Loading...</span></p>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="footer">
+            <p>Built with ❤️ using Electron</p>
+        </footer>
+    </div>
+    
+    
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="renderer.js"></script>
+</body>
+</html>

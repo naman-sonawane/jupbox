@@ -1,0 +1,11 @@
+inference-sdk==0.9.0
+opencv-python==4.8.1.78
+pillow==10.0.1
+requests==2.31.0
+streamlit==1.28.1
+numpy==1.24.3
+matplotlib==3.7.2
+spotipy==2.23.0
+flask==2.3.3
+flask-cors==4.0.0
+flask-socketio==5.3.6
