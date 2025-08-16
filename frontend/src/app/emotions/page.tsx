@@ -82,38 +82,43 @@ export default function EmotionsPage() {
     setEmotionResult(null);
   };
 
-  const playEmotionMusic = async (emotion: string, songRecommendation: string) => {
+  const playEmotionPlaylist = async (emotion: string) => {
     try {
-      setMessage("🎵 Playing music for your mood...");
+      setMessage("🎵 Creating playlist for your mood...");
       
-      const response = await fetch('http://localhost:5000/api/emotions/music', {
+      const response = await fetch('http://localhost:5000/api/emotions/playlist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        body: JSON.stringify({ emotion, song_recommendation: songRecommendation }),
+        body: JSON.stringify({ emotion }),
       });
 
       if (response.ok) {
         const data = await response.json();
         setMessage(`✅ ${data.message}`);
         
-        // Redirect to Spotify dashboard with track info
+        // Redirect to Spotify dashboard with playlist info
         setTimeout(() => {
-          const trackInfo = encodeURIComponent(JSON.stringify({
-            name: data.track.name,
-            artist: data.track.artist,
-            album: data.track.album,
-            cover_url: data.track.cover_url
+          const playlistInfo = encodeURIComponent(JSON.stringify({
+            emotion: data.emotion,
+            tracks: data.playlist,
+            total_tracks: data.total_tracks
           }));
-          window.location.href = `/spotify?emotion_music=${emotion.toLowerCase()}&track_info=${trackInfo}`;
+          window.location.href = `/spotify?emotion_playlist=${emotion.toLowerCase()}&playlist_info=${playlistInfo}`;
         }, 2000);
       } else {
-        throw new Error('Failed to play music');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
-      console.error('Music playback error:', error);
-      setMessage("❌ Error playing music. Please try again.");
+      console.error('Playlist creation error:', error);
+      if (error instanceof TypeError && (error as Error).message.includes('fetch')) {
+        setMessage("❌ Cannot connect to backend server. Please make sure the backend is running on http://localhost:5000");
+      } else {
+        setMessage(`❌ Error creating playlist: ${(error as Error).message}`);
+      }
     }
   };
 
@@ -328,21 +333,19 @@ export default function EmotionsPage() {
                   </div>
                 )}
 
-                {/* AI Song Recommendation */}
-                {emotionResult.ai_song_recommendation && (
-                  <div className="p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30">
-                    <h4 className="text-lg font-semibold text-white mb-3">🎵 AI Song Recommendation</h4>
-                    <p className="text-purple-300 text-lg font-medium mb-3">
-                      "{emotionResult.ai_song_recommendation}"
-                    </p>
-                    <button
-                      onClick={() => playEmotionMusic(emotionResult.primary_emotion, emotionResult.ai_song_recommendation)}
-                      className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 px-4 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform hover:scale-105"
-                    >
-                      🎵 Play This Song on Spotify
-                    </button>
-                  </div>
-                )}
+                {/* AI Playlist Recommendation */}
+                <div className="p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30">
+                  <h4 className="text-lg font-semibold text-white mb-3">🎵 AI Playlist Recommendation</h4>
+                  <p className="text-purple-300 text-lg font-medium mb-3">
+                    Based on your {emotionResult.primary_emotion.toLowerCase()} mood, we'll create a personalized playlist for you!
+                  </p>
+                  <button
+                    onClick={() => playEmotionPlaylist(emotionResult.primary_emotion)}
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 px-4 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform hover:scale-105"
+                  >
+                      🎵 Play Emotion Playlist
+                  </button>
+                </div>
               </div>
             )}
           </motion.div>

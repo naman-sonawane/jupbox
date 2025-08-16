@@ -44,7 +44,7 @@ export default function SpotifyDashboard() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isElectron, setIsElectron] = useState(false);
-  const [emotionMusicNotification, setEmotionMusicNotification] = useState<{show: boolean, message: string, track?: any}>({show: false, message: ''});
+  const [emotionMusicNotification, setEmotionMusicNotification] = useState<{show: boolean, message: string, track?: any, isPlaylist?: boolean}>({show: false, message: ''});
   const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -267,6 +267,8 @@ export default function SpotifyDashboard() {
     const urlParams = new URLSearchParams(window.location.search);
     const emotionMusic = urlParams.get('emotion_music');
     const trackInfo = urlParams.get('track_info');
+    const emotionPlaylist = urlParams.get('emotion_playlist');
+    const playlistInfo = urlParams.get('playlist_info');
     
     if (emotionMusic && trackInfo) {
       try {
@@ -286,6 +288,28 @@ export default function SpotifyDashboard() {
         }, 5000);
       } catch (error) {
         console.error('Error parsing track info:', error);
+      }
+    }
+    
+    if (emotionPlaylist && playlistInfo) {
+      try {
+        const playlist = JSON.parse(decodeURIComponent(playlistInfo));
+        setEmotionMusicNotification({
+          show: true,
+          message: `🎵 Playing ${playlist.total_tracks} songs for your ${emotionPlaylist} mood!`,
+          track: playlist.tracks[0], // Show first track info
+          isPlaylist: true
+        });
+        
+        // Clear the URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Auto-hide after 8 seconds (longer for playlists)
+        setTimeout(() => {
+          setEmotionMusicNotification({show: false, message: ''});
+        }, 8000);
+      } catch (error) {
+        console.error('Error parsing playlist info:', error);
       }
     }
   };
@@ -407,7 +431,10 @@ export default function SpotifyDashboard() {
                     <p className="text-green-300 font-medium">{emotionMusicNotification.message}</p>
                     {emotionMusicNotification.track && (
                       <p className="text-green-200 text-sm">
-                        Now playing: "{emotionMusicNotification.track.name}" by {emotionMusicNotification.track.artist}
+                        {emotionMusicNotification.isPlaylist ? 
+                          `First track: "${emotionMusicNotification.track.name}" by ${emotionMusicNotification.track.artist}` :
+                          `Now playing: "${emotionMusicNotification.track.name}" by ${emotionMusicNotification.track.artist}`
+                        }
                       </p>
                     )}
                   </div>

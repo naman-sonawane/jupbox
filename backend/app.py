@@ -14,7 +14,6 @@ from flask_socketio import SocketIO, emit
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import os
-import roboflow
 from inference_sdk import InferenceHTTPClient
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient
@@ -121,30 +120,82 @@ class GestureDetectionSystem:
         self.cap = None
         self.frame_count = 0
         self.last_detection_time = 0
-        self.detection_cooldown = 1.0
+        self.detection_cooldown = 0.9  # Reduced from 1.0s to 0.9s for faster response
         self.is_playing = True
         self.last_toggle_time = 0
-        self.toggle_cooldown = 2.0
+        self.toggle_cooldown = 0.9  # Reduced from 2.0s to 0.9s for faster response
         self.running = False
         
         if self.api_key:
-            self.client = InferenceHTTPClient(
-                api_url="https://serverless.roboflow.com",
-                api_key=self.api_key
-            )
+            try:
+                self.client = InferenceHTTPClient(
+                    api_url="https://serverless.roboflow.com",
+                    api_key=self.api_key
+                )
+                print(f"✅ Gesture detection client initialized with API key: {self.api_key[:10]}...")
+            except Exception as e:
+                print(f"❌ Failed to initialize gesture detection client: {e}")
+                self.client = None
+        else:
+            print("⚠️ No API key provided for gesture detection")
     
     def start_webcam(self):
-        self.cap = cv2.VideoCapture(0)
-        if not self.cap.isOpened():
-            print("Error: Could not open webcam")
-            return False
+        """Initialize webcam with multiple fallback options"""
+        print("🔍 Attempting to initialize webcam...")
         
-        print("Webcam started successfully!")
-        return True
+        # Try different camera indices
+        camera_indices = [0, 1, 2, -1]  # Common camera indices
+        
+        for camera_index in camera_indices:
+            try:
+                print(f"  Trying camera index: {camera_index}")
+                self.cap = cv2.VideoCapture(camera_index)
+                
+                if self.cap.isOpened():
+                    # Test if we can actually read a frame
+                    ret, test_frame = self.cap.read()
+                    if ret and test_frame is not None:
+                        print(f"✅ Webcam initialized successfully with camera index {camera_index}")
+                        print(f"  Frame size: {test_frame.shape}")
+                        print(f"  FPS: {self.cap.get(cv2.CAP_PROP_FPS)}")
+                        return True
+                    else:
+                        print(f"  Camera {camera_index} opened but couldn't read frame")
+                        self.cap.release()
+                else:
+                    print(f"  Camera {camera_index} failed to open")
+                    
+            except Exception as e:
+                print(f"  Error with camera {camera_index}: {e}")
+                if self.cap:
+                    self.cap.release()
+        
+        # If all cameras fail, try with specific backend
+        try:
+            print("  Trying with specific backend...")
+            self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # DirectShow backend on Windows
+            if self.cap.isOpened():
+                ret, test_frame = self.cap.read()
+                if ret and test_frame is not None:
+                    print("✅ Webcam initialized with DirectShow backend")
+                    return True
+                else:
+                    self.cap.release()
+        except Exception as e:
+            print(f"  DirectShow backend failed: {e}")
+        
+        print("❌ Failed to initialize webcam with all methods")
+        print("💡 Troubleshooting tips:")
+        print("  1. Make sure your webcam is connected and not in use by another application")
+        print("  2. Try closing other applications that might be using the camera")
+        print("  3. Check if your webcam drivers are properly installed")
+        print("  4. On Windows, try running as administrator")
+        return False
     
     def detect_gestures(self, frame):
         """Detect hand gestures for Spotify control"""
         if not self.client:
+            print("⚠️ Gesture detection client not available")
             return None
             
         try:
@@ -178,7 +229,7 @@ class GestureDetectionSystem:
             number_class = pred.get('class', 'Unknown')
             confidence = pred.get('confidence', 0)
             
-            if confidence > 0.4:
+            if confidence > 0.15:  # Lowered from 0.4 to 0.15 for better sensitivity
                 if number_class == "0" and self.is_playing:
                     self.is_playing = False
                     self.last_toggle_time = current_time
@@ -194,6 +245,14 @@ class GestureDetectionSystem:
                     
                     self.control_spotify_playback(True)
                     socketio.emit('playback_state_changed', {'is_playing': True})
+                
+                elif number_class == "1":
+                    # Skip to next track
+                    self.last_toggle_time = current_time
+                    print(f"⏭️ NEXT TRACK - Detected class '1' with {confidence:.1%} confidence")
+                    
+                    self.skip_to_next_track()
+                    socketio.emit('track_skipped', {'action': 'next'})
 
     def control_spotify_playback(self, should_play):
         try:
@@ -210,39 +269,50 @@ class GestureDetectionSystem:
         except Exception as e:
             print(f"Error controlling Spotify playback: {e}")
 
+    def skip_to_next_track(self):
+        try:
+            spotify_client = get_spotify_client()
+            if spotify_client:
+                spotify_client.next_track()
+                print(f"Spotify track skipped to next via camera control")
+        except Exception as e:
+            print(f"Error skipping to next track: {e}")
+
     def run(self):
+        print("🚀 Starting gesture detection system...")
+        
         if not self.start_webcam():
+            print("❌ Cannot start gesture detection without webcam")
             return
         
         self.running = True
-        print("Gesture detection started. Show '0' to pause, '5' to play.")
+        print("✅ Gesture detection started in headless mode!")
+        print("   Show '0' to pause, '5' to play, '1' to skip")
+        print("   Use the API to stop: POST /api/gesture/stop")
         
         try:
             while self.running:
                 ret, frame = self.cap.read()
                 if not ret:
-                    print("Error: Could not read frame")
+                    print("❌ Error: Could not read frame from webcam")
+                    break
+                
+                if frame is None:
+                    print("❌ Error: Received null frame from webcam")
                     break
                 
                 frame = cv2.flip(frame, 1)
                 
                 self.frame_count += 1
                 
-                status_text = "> PLAYING" if self.is_playing else "|| PAUSED"
-                status_color = (0, 255, 0) if self.is_playing else (0, 0, 255)
-                
-                (text_width, text_height), _ = cv2.getTextSize(status_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)
-                
-                cv2.rectangle(frame, (5, 35), (5 + text_width + 10, 35 + text_height + 10), 
-                             (0, 0, 0), -1)
-                
-                cv2.putText(frame, status_text, (10, 50), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, status_color, 2)
+                # Log status to console instead of GUI
+                if self.frame_count % 60 == 0:  # Every 60 frames (~2 seconds)
+                    status_text = "> PLAYING" if self.is_playing else "|| PAUSED"
+                    print(f"🎵 Status: {status_text} (Frame {self.frame_count})")
                 
                 current_time = time.time()
                 if current_time - self.last_detection_time >= self.detection_cooldown:
-                    cv2.putText(frame, "Processing...", (10, 70), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                    print("🔍 Processing gesture detection...")
                     
                     result = self.detect_gestures(frame)
                     
@@ -256,34 +326,43 @@ class GestureDetectionSystem:
                     
                     self.last_detection_time = current_time
                 
-                instruction_text = "Show '0' to PAUSE | Show '5' to PLAY"
-                cv2.putText(frame, instruction_text, (10, frame.shape[0] - 20), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                # Save frame occasionally for debugging (optional)
+                if self.frame_count % 30 == 0:  # Every 30 frames
+                    try:
+                        filename = f"gesture_frame_{int(time.time())}.jpg"
+                        cv2.imwrite(filename, frame)
+                        print(f"📸 Debug frame saved as {filename}")
+                    except:
+                        pass  # Ignore save errors
                 
-                cv2.imshow('Numbers Detection - Play/Pause Control', frame)
+                # Simple delay instead of GUI
+                time.sleep(0.033)  # ~30 FPS
                 
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord('q'):
+                # Check if we should stop
+                if not self.running:
+                    print("👋 Stopping gesture detection...")
                     break
-                elif key == ord('s'):
-                    filename = f"gesture_frame_{int(time.time())}.jpg"
-                    cv2.imwrite(filename, frame)
-                    print(f"Frame saved as {filename}")
                 
         except KeyboardInterrupt:
-            print("\nStopping...")
+            print("\n⏹️ Stopping gesture detection...")
+        except Exception as e:
+            print(f"❌ Error in gesture detection loop: {e}")
         
         finally:
             self.cleanup()
     
     def stop(self):
+        print("🛑 Stopping gesture detection...")
         self.running = False
     
     def cleanup(self):
         if self.cap:
             self.cap.release()
-        cv2.destroyAllWindows()
-        print("Webcam stopped and resources cleaned up.")
+        try:
+            cv2.destroyAllWindows()
+        except:
+            pass  # Ignore GUI errors
+        print("✅ Webcam stopped and resources cleaned up.")
 
 # Face recognition functions
 def normalize_vector(vector):
@@ -857,12 +936,29 @@ def test_gesture_detection():
             api_key=API_KEY
         )
         
+        # Test webcam access
+        webcam_test = False
+        webcam_error = None
+        try:
+            cap = cv2.VideoCapture(0)
+            if cap.isOpened():
+                ret, frame = cap.read()
+                if ret and frame is not None:
+                    webcam_test = True
+                cap.release()
+            else:
+                webcam_error = "Could not open webcam"
+        except Exception as e:
+            webcam_error = str(e)
+        
         return jsonify({
             'success': True,
             'message': 'Gesture detection system is properly configured',
             'api_key': API_KEY[:10] + '...' if len(API_KEY) > 10 else API_KEY,
             'model_id': MODEL_ID,
-            'client_created': test_client is not None
+            'client_created': test_client is not None,
+            'webcam_accessible': webcam_test,
+            'webcam_error': webcam_error
         })
     except Exception as e:
         return jsonify({
@@ -1197,6 +1293,221 @@ def get_emotion_based_music():
     except Exception as e:
         print(f"❌ Emotion-based music error: {e}")
         return jsonify({"error": "music_failed", "details": str(e)}), 500
+
+@app.route('/api/emotions/playlist', methods=['POST'])
+def create_emotion_playlist():
+    """Create a playlist of songs based on detected emotion"""
+    try:
+        data = request.get_json()
+        emotion = data.get('emotion')
+        
+        if not emotion:
+            return jsonify({"error": "emotion required"}), 400
+        
+        print(f"🎵 Creating playlist for emotion: {emotion}")
+        
+        # Get Spotify client
+        sp = get_spotify_client()
+        if not sp:
+            return jsonify({"error": "Spotify not configured"}), 500
+        
+        # Define emotion-based search queries for multiple songs
+        emotion_playlists = {
+            'Happy': [
+                'upbeat happy songs',
+                'feel good music',
+                'positive vibes',
+                'summer hits',
+                'dance music'
+            ],
+            'Sad': [
+                'melancholy songs',
+                'sad ballads',
+                'emotional music',
+                'heartbreak songs',
+                'reflective music'
+            ],
+            'Angry': [
+                'intense rock music',
+                'powerful songs',
+                'aggressive music',
+                'metal songs',
+                'energetic rock'
+            ],
+            'Natural': [
+                'calm relaxing music',
+                'ambient music',
+                'peaceful songs',
+                'nature sounds',
+                'meditation music'
+            ],
+            'Disgust': [
+                'dark intense music',
+                'heavy metal',
+                'industrial music',
+                'aggressive songs',
+                'intense electronic'
+            ],
+            'Surprise': [
+                'energetic exciting music',
+                'upbeat electronic',
+                'dance hits',
+                'party music',
+                'energetic pop'
+            ]
+        }
+        
+        # Get search queries for this emotion
+        search_queries = emotion_playlists.get(emotion, ['music'])
+        
+        # Collect tracks from different searches
+        all_tracks = []
+        tracks_per_query = 2  # Get 2 tracks per search query
+        
+        for query in search_queries:
+            try:
+                search_results = sp.search(q=query, type='track', limit=tracks_per_query)
+                if search_results['tracks']['items']:
+                    for track in search_results['tracks']['items']:
+                        all_tracks.append({
+                            'name': track['name'],
+                            'artist': track['artists'][0]['name'],
+                            'album': track['album']['name'],
+                            'cover_url': track['album']['images'][0]['url'] if track['album']['images'] else None,
+                            'uri': track['uri'],
+                            'preview_url': track['preview_url']
+                        })
+            except Exception as e:
+                print(f"❌ Error searching for '{query}': {e}")
+                continue
+        
+        # Remove duplicates based on track URI
+        unique_tracks = []
+        seen_uris = set()
+        for track in all_tracks:
+            if track['uri'] not in seen_uris:
+                unique_tracks.append(track)
+                seen_uris.add(track['uri'])
+        
+        # Limit to 8 tracks maximum
+        playlist_tracks = unique_tracks[:8]
+        
+        if not playlist_tracks:
+            return jsonify({
+                'success': False,
+                'message': 'No music found for this emotion'
+            }), 404
+        
+        # Start playing the first track and queue the rest
+        try:
+            # Start with the first track
+            sp.start_playback(uris=[playlist_tracks[0]['uri']])
+            first_track_playing = True
+            
+            # Queue the remaining tracks
+            if len(playlist_tracks) > 1:
+                remaining_uris = [track['uri'] for track in playlist_tracks[1:]]
+                try:
+                    sp.add_to_queue(remaining_uris[0])  # Add next track to queue
+                    print(f"✅ Queued {len(remaining_uris)} additional tracks")
+                except Exception as e:
+                    print(f"⚠️ Could not queue additional tracks: {e}")
+                    
+        except Exception as e:
+            print(f"⚠️ Could not start playback: {e}")
+            first_track_playing = False
+        
+        return jsonify({
+            'success': True,
+            'emotion': emotion,
+            'playlist': playlist_tracks,
+            'total_tracks': len(playlist_tracks),
+            'first_track_playing': first_track_playing,
+            'message': f'Created a {emotion.lower()} mood playlist with {len(playlist_tracks)} songs!'
+        })
+        
+    except Exception as e:
+        print(f"❌ Emotion playlist creation error: {e}")
+        return jsonify({"error": "playlist_creation_failed", "details": str(e)}), 500
+
+@app.route('/api/webcam/test', methods=['GET'])
+def test_webcam():
+    """Test webcam access and return detailed information"""
+    try:
+        print("🔍 Testing webcam access...")
+        
+        # Try different camera indices
+        camera_results = []
+        for camera_index in [0, 1, 2, -1]:
+            try:
+                cap = cv2.VideoCapture(camera_index)
+                if cap.isOpened():
+                    ret, frame = cap.read()
+                    if ret and frame is not None:
+                        camera_results.append({
+                            'index': camera_index,
+                            'status': 'working',
+                            'frame_size': frame.shape,
+                            'fps': cap.get(cv2.CAP_PROP_FPS),
+                            'backend': cap.getBackendName()
+                        })
+                    else:
+                        camera_results.append({
+                            'index': camera_index,
+                            'status': 'opened_but_no_frame',
+                            'error': 'Could not read frame'
+                        })
+                else:
+                    camera_results.append({
+                        'index': camera_index,
+                        'status': 'failed',
+                        'error': 'Could not open camera'
+                    })
+                cap.release()
+            except Exception as e:
+                camera_results.append({
+                    'index': camera_index,
+                    'status': 'error',
+                    'error': str(e)
+                })
+        
+        # Try DirectShow backend on Windows
+        try:
+            cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+            if cap.isOpened():
+                ret, frame = cap.read()
+                if ret and frame is not None:
+                    camera_results.append({
+                        'index': '0 (DirectShow)',
+                        'status': 'working',
+                        'frame_size': frame.shape,
+                        'fps': cap.get(cv2.CAP_PROP_FPS),
+                        'backend': 'DirectShow'
+                    })
+                cap.release()
+        except Exception as e:
+            camera_results.append({
+                'index': '0 (DirectShow)',
+                'status': 'error',
+                'error': str(e)
+            })
+        
+        working_cameras = [cam for cam in camera_results if cam['status'] == 'working']
+        
+        return jsonify({
+            'success': True,
+            'webcam_available': len(working_cameras) > 0,
+            'working_cameras': working_cameras,
+            'all_camera_tests': camera_results,
+            'recommendation': 'Use camera index 0' if working_cameras else 'No working cameras found'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': 'Failed to test webcam'
+        }), 500
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
