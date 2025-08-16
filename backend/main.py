@@ -14,15 +14,15 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import os
 
-API_KEY = "[]"
+API_KEY = "t4y8okUvSiM9Y9QdOhia"
 MODEL_ID = "numbers-qysva/7"
 
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-SPOTIFY_CLIENT_ID = "[]"
-SPOTIFY_CLIENT_SECRET = "[]"
+SPOTIFY_CLIENT_ID = "b52e7240c7544a589e65126efac853dc"
+SPOTIFY_CLIENT_SECRET = "d54a64dfe1e144c4b2e0fa3cb256ad53"
 REDIRECT_URI = "http://127.0.0.1:8888/callback"
 
 sp = None
@@ -142,7 +142,7 @@ class WebcamNumbersDetector:
             number_class = pred.get('class', 'Unknown')
             confidence = pred.get('confidence', 0)
             
-            if confidence > 0.7:
+            if confidence > 0.4:
                 if number_class == "0" and self.is_playing:
                     self.is_playing = False
                     self.last_toggle_time = current_time
@@ -152,14 +152,20 @@ class WebcamNumbersDetector:
                     
                     socketio.emit('playback_state_changed', {'is_playing': False})
                     
-                elif number_class == "5" and not self.is_playing:
+                elif number_class in ["4", "5"] and not self.is_playing:
                     self.is_playing = True
                     self.last_toggle_time = current_time
-                    print(f"> PLAYING - Detected class '5' with {confidence:.1%} confidence")
+                    print(f"> PLAYING - Detected class '{number_class}' with {confidence:.1%} confidence")
                     
                     self.control_spotify_playback(True)
                     
                     socketio.emit('playback_state_changed', {'is_playing': True})
+                    
+                elif number_class == "1":
+                    self.last_toggle_time = current_time
+                    print(f"⏭️ SKIP - Detected class '1' with {confidence:.1%} confidence")
+                    
+                    self.skip_to_next_track()
 
     def control_spotify_playback(self, should_play):
         try:
@@ -174,6 +180,14 @@ class WebcamNumbersDetector:
                 print(f"Spotify playback {'started' if should_play else 'paused'} via camera control")
         except Exception as e:
             print(f"Error controlling Spotify playback: {e}")
+
+    def skip_to_next_track(self):
+        try:
+            spotify_client = get_spotify_client()
+            spotify_client.next_track()
+            print("Spotify track skipped via camera control")
+        except Exception as e:
+            print(f"Error skipping Spotify track: {e}")
 
     def run(self):
         if not self.start_webcam():
@@ -222,7 +236,7 @@ class WebcamNumbersDetector:
                     
                     self.last_detection_time = current_time
                 
-                instruction_text = "Show '0' to PAUSE | Show '5' to PLAY"
+                instruction_text = "Show '0' to PAUSE | Show '4' or '5' to PLAY | Show '1' to SKIP"
                 cv2.putText(frame, instruction_text, (10, frame.shape[0] - 20), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
                 
@@ -439,9 +453,10 @@ def main():
     print("2. Open your webcam for gesture detection")
     print("3. Control Spotify playback based on detected numbers")
     print("4. Provide real-time communication with the frontend")
-    print("\n🎮 Play/Pause Controls:")
+    print("\n🎮 Gesture Controls:")
     print("- Show '0' (zero) to PAUSE")
-    print("- Show '5' (five) to PLAY")
+    print("- Show '4' or '5' (four/five) to PLAY")
+    print("- Show '1' (one) to SKIP to next track")
     print("\n🌐 Server endpoints:")
     print("- Flask API: http://localhost:5000")
     print("- WebSocket: ws://localhost:5000")

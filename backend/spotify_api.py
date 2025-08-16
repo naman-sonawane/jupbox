@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 CORS(app)
 
-SPOTIFY_CLIENT_ID = "[]"
-SPOTIFY_CLIENT_SECRET = "[]"
+SPOTIFY_CLIENT_ID = "b52e7240c7544a589e65126efac853dc"
+SPOTIFY_CLIENT_SECRET = "d54a64dfe1e144c4b2e0fa3cb256ad53"
 REDIRECT_URI = "http://127.0.0.1:8888/callback"
 
 sp = None

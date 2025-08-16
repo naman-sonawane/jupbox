@@ -13,7 +13,7 @@ import io
 import base64
 
 
-API_KEY = "[]"
+API_KEY = "t4y8okUvSiM9Y9QdOhia"
 MODEL_ID = "numbers-qysva/7"
 
 class WebcamNumbersDetector:
@@ -140,7 +140,7 @@ class WebcamNumbersDetector:
             confidence = pred.get('confidence', 0)
             
             
-            if confidence > 0.7:  
+            if confidence > 0.4:  
                 if number_class == "0" and self.is_playing:
                     
                     self.is_playing = False
