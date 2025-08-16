@@ -23,11 +23,12 @@ export async function POST(request: NextRequest) {
     
     try {
       console.log("Calling backend enrollment API...");
+      // Send the first frame as the image for enrollment
       const backendResp = await fetch(`${BACKEND_URL}/api/enroll`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          frames, 
+          image: frames[0], // Send the first frame as the image
           email, 
           name
         })
@@ -48,8 +49,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           user_id: backendData.user_id,
-          inserted_points: backendData.inserted_points,
-          message: backendData.message
+          name: backendData.name,
+          email: backendData.email,
+          embeddings_count: backendData.embeddings_count,
+          message: "User enrolled successfully"
         });
       } else {
         return NextResponse.json({ 

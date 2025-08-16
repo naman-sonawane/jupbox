@@ -7,7 +7,10 @@
     "build": "next build",
     "build:static": "next build && next export",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "dev:integrated": "concurrently \"npm run dev\" \"cd ../backend && python app.py\"",
+    "backend:start": "cd ../backend && python app.py",
+    "backend:dev": "cd ../backend && python -m flask run --debug"
   },
   "dependencies": {
     "mongoose": "^8.17.1",
@@ -25,6 +28,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-webcam": "^1.1.0",
+    "concurrently": "^8.2.2",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
     "tailwindcss": "^4",

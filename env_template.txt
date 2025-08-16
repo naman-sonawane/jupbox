@@ -1,16 +1,22 @@
-# Spotify API Configuration
-SPOTIFY_CLIENT_ID=b52e7240c7544a589e65126efac853dc
-SPOTIFY_CLIENT_SECRET=d54a64dfe1e144c4b2e0fa3cb256ad53
-SPOTIFY_REDIRECT_URI=http://127.0.0.1:8888/callback
+# Jupbox Environment Configuration
+# Copy this file to .env and fill in your actual values
 
-# Roboflow API Configuration
-ROBOFLOW_API_KEY=[]
-ROBOFLOW_MODEL_ID=numbers-qysva/7
+# Spotify API Configuration (Required for music control)
+SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
+REDIRECT_URI=http://127.0.0.1:8888/callback
 
-# Flask Server Configuration
-FLASK_HOST=0.0.0.0
-FLASK_PORT=5000
-FLASK_DEBUG=True
+# Roboflow API Configuration (Optional, for enhanced AI features)
+ROBOFLOW_API_KEY=your_roboflow_api_key_here
 
-# Webcam Configuration
-WEBCAM_INDEX=0
+# Database Configuration (Optional, for face authentication storage)
+QDRANT_URL=http://localhost:6333
+QDRANT_API_KEY=your_qdrant_api_key_here
+MONGODB_URI=mongodb://localhost:27017/jupbox
+
+# Face Recognition Configuration
+THRESHOLD=0.65
+
+# Server Configuration
+FLASK_ENV=development
+FLASK_DEBUG=1

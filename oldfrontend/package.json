@@ -2,7 +2,7 @@
   "name": "jupbox",
   "version": "1.0.0",
   "description": "Electron app for Jupbox with Next.js frontend",
-  "main": "main_next.js",
+  "main": "main.js",
   "scripts": {
     "start": "electron .",
     "start:next": "set NODE_ENV=development && electron .",
