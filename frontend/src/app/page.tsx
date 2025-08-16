@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import PWAInstallPrompt from '../components/PWAInstallPrompt';
 
 export default function HomePage() {
   const [isConnected, setIsConnected] = useState(false);
@@ -14,9 +16,9 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-purple-900">
       {/* Header */}
-      <header className="bg-black/20 backdrop-blur-md border-b border-white/10">
+      <header className="bg-black/20 backdrop-blur-md border-b border-purple-500/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-3">
@@ -42,10 +44,15 @@ export default function HomePage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
-        <div className="text-center mb-16">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
             Welcome to{' '}
-            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-red-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
               Jupbox
             </span>
           </h1>
@@ -53,94 +60,141 @@ export default function HomePage() {
             Your all-in-one music control system with gesture recognition, face authentication, and Spotify integration.
             Experience music like never before.
           </p>
-        </div>
+        </motion.div>
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
           {/* Face Authentication */}
-          <Link href="/auth" className="group">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:bg-white/15">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-2xl">👤</span>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            <Link href="/auth" className="group block">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:scale-105 hover:bg-white/15">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <span className="text-2xl">👤</span>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-4">Face Authentication</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  Secure access to your music system using advanced face recognition. Enroll your face and enjoy seamless, secure authentication.
+                </p>
+                <div className="mt-6 flex items-center text-purple-400 group-hover:text-purple-300 transition-colors">
+                  <span className="font-medium">Sign Up Now</span>
+                  <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </div>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Face Authentication</h3>
-              <p className="text-gray-300 leading-relaxed">
-                Secure access to your music system using advanced face recognition. Enroll your face and enjoy seamless, secure authentication.
-              </p>
-              <div className="mt-6 flex items-center text-blue-400 group-hover:text-blue-300 transition-colors">
-                <span className="font-medium">Authenticate</span>
-                <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </div>
-            </div>
-          </Link>
+            </Link>
+          </motion.div>
 
           {/* Spotify Control with Gestures */}
-          <Link href="/spotify" className="group">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:bg-white/15">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-2xl">🎵</span>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            <Link href="/spotify" className="group block">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:scale-105 hover:bg-white/15">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <span className="text-2xl">🎵</span>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-4">Spotify + Gestures</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  Control your Spotify playback with beautiful UI and hand gestures. Play, pause, skip tracks, and search for music with simple hand movements.
+                </p>
+                <div className="mt-6 flex items-center text-purple-400 group-hover:text-purple-300 transition-colors">
+                  <span className="font-medium">Get Started</span>
+                  <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </div>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Spotify + Gestures</h3>
-              <p className="text-gray-300 leading-relaxed">
-                Control your Spotify playback with beautiful UI and hand gestures. Play, pause, skip tracks, and search for music with simple hand movements.
-              </p>
-              <div className="mt-6 flex items-center text-green-400 group-hover:text-green-300 transition-colors">
-                <span className="font-medium">Get Started</span>
-                <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
+            </Link>
+          </motion.div>
+
+          {/* Emotion Detection */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+          >
+            <Link href="/emotions" className="group block">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:scale-105 hover:bg-white/15">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <span className="text-2xl">🎭</span>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-4">Emotion Detection</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  Advanced AI-powered emotion recognition. Analyze facial expressions and get insights into your emotional state in real-time.
+                </p>
+                <div className="mt-6 flex items-center text-purple-400 group-hover:text-purple-300 transition-colors">
+                  <span className="font-medium">Explore</span>
+                  <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+          </motion.div>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.8 }}
+          className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16"
+        >
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-purple-500/20">
             <div className="text-3xl font-bold text-white mb-2">🎵</div>
             <div className="text-2xl font-bold text-white">Spotify</div>
             <div className="text-gray-300">Connected</div>
           </div>
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-purple-500/20">
             <div className="text-3xl font-bold text-white mb-2">👤</div>
             <div className="text-2xl font-bold text-white">Face Auth</div>
             <div className="text-gray-300">Ready</div>
           </div>
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-purple-500/20">
             <div className="text-3xl font-bold text-white mb-2">🎮</div>
             <div className="text-2xl font-bold text-white">Gestures</div>
             <div className="text-gray-300">Integrated</div>
           </div>
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-purple-500/20">
             <div className="text-3xl font-bold text-white mb-2">⚡</div>
             <div className="text-2xl font-bold text-white">Real-time</div>
             <div className="text-gray-300">WebSocket</div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Call to Action */}
-        <div className="text-center">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 1.0 }}
+          className="text-center"
+        >
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 max-w-2xl mx-auto">
             <h2 className="text-3xl font-bold text-white mb-4">Ready to Get Started?</h2>
             <p className="text-purple-100 mb-6">
               Choose your preferred way to interact with your music. Each feature is designed to work independently.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/spotify" className="px-8 py-3 bg-white text-purple-600 rounded-xl font-semibold hover:bg-gray-100 transition-colors">
-                🎵 Start with Spotify
+              <Link href="/auth" className="px-8 py-3 bg-white text-purple-600 rounded-xl font-semibold hover:bg-gray-100 transition-colors">
+                👤 Sign Up with Face
               </Link>
-              <Link href="/auth" className="px-8 py-3 bg-black/20 text-white rounded-xl font-semibold hover:bg-black/30 transition-colors border border-white/30">
-                👤 Face Authentication
+              <Link href="/login" className="px-8 py-3 bg-black/20 text-white rounded-xl font-semibold hover:bg-black/30 transition-colors border border-white/30">
+                🔐 Sign In
               </Link>
             </div>
           </div>
-        </div>
+        </motion.div>
       </main>
 
       {/* Footer */}
-      <footer className="bg-black/20 backdrop-blur-md border-t border-white/10 mt-20">
+      <footer className="bg-black/20 backdrop-blur-md border-t border-purple-500/20 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-400">
             <p className="text-sm">
@@ -152,6 +206,9 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </div>
   );
 }
