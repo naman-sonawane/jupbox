@@ -44,6 +44,7 @@ export default function SpotifyDashboard() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isElectron, setIsElectron] = useState(false);
+  const [emotionMusicNotification, setEmotionMusicNotification] = useState<{show: boolean, message: string, track?: any}>({show: false, message: ''});
   const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -60,6 +61,7 @@ export default function SpotifyDashboard() {
     initializeSpotify();
     initializeWebSocket();
     startGestureDetection();
+    checkEmotionMusicStatus();
     
     return () => {
       if (updateIntervalRef.current) {
@@ -260,6 +262,34 @@ export default function SpotifyDashboard() {
     }
   };
 
+  const checkEmotionMusicStatus = () => {
+    // Check if we came from emotion detection
+    const urlParams = new URLSearchParams(window.location.search);
+    const emotionMusic = urlParams.get('emotion_music');
+    const trackInfo = urlParams.get('track_info');
+    
+    if (emotionMusic && trackInfo) {
+      try {
+        const track = JSON.parse(decodeURIComponent(trackInfo));
+        setEmotionMusicNotification({
+          show: true,
+          message: `🎵 Playing music for your ${emotionMusic} mood!`,
+          track: track
+        });
+        
+        // Clear the URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          setEmotionMusicNotification({show: false, message: ''});
+        }, 5000);
+      } catch (error) {
+        console.error('Error parsing track info:', error);
+      }
+    }
+  };
+
   const getProgressPercentage = () => {
     if (!currentTrack || currentTrack.duration_ms === 0) return 0;
     return (currentTrack.progress_ms / currentTrack.duration_ms) * 100;
@@ -360,6 +390,38 @@ export default function SpotifyDashboard() {
             </div>
           </div>
         </motion.div>
+
+        {/* Emotion Music Notification */}
+        {emotionMusicNotification.show && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="mb-6"
+          >
+            <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-md rounded-xl p-4 border border-green-500/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">🎵</span>
+                  <div>
+                    <p className="text-green-300 font-medium">{emotionMusicNotification.message}</p>
+                    {emotionMusicNotification.track && (
+                      <p className="text-green-200 text-sm">
+                        Now playing: "{emotionMusicNotification.track.name}" by {emotionMusicNotification.track.artist}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEmotionMusicNotification({show: false, message: ''})}
+                  className="text-green-300 hover:text-green-200 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Spotify Player Card */}
         <motion.div

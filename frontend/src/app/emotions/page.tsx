@@ -55,8 +55,8 @@ export default function EmotionsPage() {
       const formData = new FormData();
       formData.append('file', blob, 'emotion.jpg');
 
-      // Call Roboflow API (you'll need to set up your own endpoint)
-      const response = await fetch('/api/emotions', {
+      // Call backend API for emotion detection
+      const response = await fetch('http://localhost:5000/api/emotions', {
         method: 'POST',
         body: formData,
       });
@@ -80,6 +80,41 @@ export default function EmotionsPage() {
     setShowCamera(false);
     setMessage("");
     setEmotionResult(null);
+  };
+
+  const playEmotionMusic = async (emotion: string, songRecommendation: string) => {
+    try {
+      setMessage("🎵 Playing music for your mood...");
+      
+      const response = await fetch('http://localhost:5000/api/emotions/music', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ emotion, song_recommendation: songRecommendation }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessage(`✅ ${data.message}`);
+        
+        // Redirect to Spotify dashboard with track info
+        setTimeout(() => {
+          const trackInfo = encodeURIComponent(JSON.stringify({
+            name: data.track.name,
+            artist: data.track.artist,
+            album: data.track.album,
+            cover_url: data.track.cover_url
+          }));
+          window.location.href = `/spotify?emotion_music=${emotion.toLowerCase()}&track_info=${trackInfo}`;
+        }, 2000);
+      } else {
+        throw new Error('Failed to play music');
+      }
+    } catch (error) {
+      console.error('Music playback error:', error);
+      setMessage("❌ Error playing music. Please try again.");
+    }
   };
 
   if (status === 'loading') {
@@ -248,13 +283,7 @@ export default function EmotionsPage() {
                 <div className="text-center p-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30">
                   <h3 className="text-lg font-semibold text-white mb-2">Primary Emotion</h3>
                   <div className="text-4xl mb-2">
-                    {emotionResult.primary_emotion === 'happy' && '😊'}
-                    {emotionResult.primary_emotion === 'sad' && '😢'}
-                    {emotionResult.primary_emotion === 'angry' && '😠'}
-                    {emotionResult.primary_emotion === 'surprised' && '😲'}
-                    {emotionResult.primary_emotion === 'fearful' && '😨'}
-                    {emotionResult.primary_emotion === 'disgusted' && '🤢'}
-                    {emotionResult.primary_emotion === 'neutral' && '😐'}
+                    {emotionResult.emoji || '😐'}
                   </div>
                   <p className="text-2xl font-bold text-white capitalize">
                     {emotionResult.primary_emotion}
@@ -296,6 +325,22 @@ export default function EmotionsPage() {
                     <p className="text-gray-300 text-sm">
                       {emotionResult.insights}
                     </p>
+                  </div>
+                )}
+
+                {/* AI Song Recommendation */}
+                {emotionResult.ai_song_recommendation && (
+                  <div className="p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30">
+                    <h4 className="text-lg font-semibold text-white mb-3">🎵 AI Song Recommendation</h4>
+                    <p className="text-purple-300 text-lg font-medium mb-3">
+                      "{emotionResult.ai_song_recommendation}"
+                    </p>
+                    <button
+                      onClick={() => playEmotionMusic(emotionResult.primary_emotion, emotionResult.ai_song_recommendation)}
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 px-4 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform hover:scale-105"
+                    >
+                      🎵 Play This Song on Spotify
+                    </button>
                   </div>
                 )}
               </div>

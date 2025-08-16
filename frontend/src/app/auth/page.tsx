@@ -59,7 +59,7 @@ export default function AuthPage() {
       setLoading(true);
       setMessage("🔄 Submitting enrollment...");
       
-      const response = await fetch('/api/enroll', {
+      const response = await fetch('http://localhost:5000/api/enroll', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

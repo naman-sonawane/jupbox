@@ -15,7 +15,6 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import os
 import roboflow
-from inference_sdk import InferenceHTTPClient
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import VectorParams, Distance, PointStruct
@@ -128,10 +127,7 @@ class GestureDetectionSystem:
         self.running = False
         
         if self.api_key:
-            self.client = InferenceHTTPClient(
-                api_url="https://serverless.roboflow.com",
-                api_key=self.api_key
-            )
+            self.client = roboflow.Roboflow(api_key=self.api_key)
     
     def start_webcam(self):
         self.cap = cv2.VideoCapture(0)
@@ -156,7 +152,7 @@ class GestureDetectionSystem:
             result = self.client.infer(
                 temp_filename, 
                 model_id=self.model_id
-            )
+            ).json()
             
             # Clean up
             if os.path.exists(temp_filename):
@@ -618,62 +614,6 @@ def get_face_embeddings_hybrid_improved(image_dataurl):
         print(f"Error in improved hybrid face embedding approach: {e}")
         return []
 
-def find_song_for_emotion(emotion):
-    """Use AI to find an actual existing song that matches the detected emotion"""
-    try:
-        print(f"🎵 Finding real song for emotion: {emotion}")
-        
-        # Prepare the prompt for AI to find real songs
-        prompt = f"""Find me the name of a real, existing song that perfectly represents the emotion '{emotion}'. 
-        
-        Requirements:
-        - Must be a REAL song that exists (not made up)
-        - Should be well-known and available on music platforms
-        - Should match the emotional mood
-        - Return only the song name and artist in format: "Song Name - Artist Name"
-        
-        Examples for different emotions:
-        - Happy: "Happy - Pharrell Williams"
-        - Sad: "Mad World - Gary Jules"
-        - Angry: "Break Stuff - Limp Bizkit"
-        - Natural/Calm: "Weightless - Marconi Union"
-        - Surprise: "Surprise Surprise - Billy Talent"
-        - Disgust: "Creep - Radiohead"
-        
-        Return only the song name and artist, nothing else."""
-        
-        # Call Hack Club AI API
-        ai_response = requests.post(
-            "https://ai.hackclub.com/chat/completions",
-            headers={"Content-Type": "application/json"},
-            json={
-                "messages": [{"role": "user", "content": prompt}],
-                "model": "qwen/qwen3-32b",
-                "temperature": 0.7,
-                "max_completion_tokens": 100
-            },
-            timeout=30
-        )
-        
-        if ai_response.status_code == 200:
-            result = ai_response.json()
-            song_info = result['choices'][0]['message']['content'].strip()
-            
-            # Clean up the response
-            song_info = song_info.replace('"', '').replace("'", "")
-            if song_info.startswith('Song:'):
-                song_info = song_info[5:].strip()
-            
-            print(f"✅ AI found song: {song_info}")
-            return song_info
-        else:
-            print(f"❌ AI API error: {ai_response.status_code}")
-            return None
-            
-    except Exception as e:
-        print(f"❌ Error finding song: {e}")
-        return None
-
 # API Routes
 
 @app.route('/api/spotify/current', methods=['GET'])
@@ -852,10 +792,7 @@ def test_gesture_detection():
     """Test endpoint to verify gesture detection setup"""
     try:
         # Check if we can create a test client
-        test_client = InferenceHTTPClient(
-            api_url="https://serverless.roboflow.com",
-            api_key=API_KEY
-        )
+        test_client = roboflow.Roboflow(api_key=API_KEY)
         
         return jsonify({
             'success': True,
@@ -1007,196 +944,53 @@ def authenticate_user():
 def detect_emotions():
     """Detect emotions in uploaded image using Roboflow"""
     try:
-        # Check if file is in request
-        if 'file' not in request.files:
-            return jsonify({"error": "no_file_provided"}), 400
+        body = request.get_json()
+        image = body.get("image")
         
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"error": "no_file_selected"}), 400
+        if not image:
+            return jsonify({"error": "no_image_provided"}), 400
         
         print("🎭 Starting emotion detection...")
         
+        # Decode the image
+        if image.startswith('data:image'):
+            image = image.split(',')[1]
+        
+        image_bytes = base64.b64decode(image)
+        
         # Save temporary image
         temp_filename = f"temp_emotion_{int(time.time())}.jpg"
-        file.save(temp_filename)
+        with open(temp_filename, 'wb') as f:
+            f.write(image_bytes)
         
         try:
             # Use Roboflow for emotion detection
             if API_KEY:
-                # Use the hosted API directly with the new emotion-detection-cwq4g model
-                from inference_sdk import InferenceHTTPClient
-                
-                client = InferenceHTTPClient(
-                    api_url="https://serverless.roboflow.com",
-                    api_key=API_KEY
-                )
-                
-                # Predict on the image using the emotion-detection-cwq4g model
-                result = client.infer(temp_filename, model_id="emotion-detection-cwq4g/1")
+                rf = roboflow.Roboflow(api_key=API_KEY)
+                result = rf.infer(temp_filename, model_id="emotion-detection-mikolaj/1").json()
                 
                 # Clean up temp file
-                os.remove(temp_filename)
+                if os.path.exists(temp_filename):
+                    os.remove(temp_filename)
                 
-                # Extract emotion data from the new 6-emotion model
-                if result['predictions']:
-                    predictions = result['predictions']
-                    emotions = {}
-                    
-                    for pred in predictions:
-                        emotion = pred['class']
-                        confidence = pred['confidence']
-                        emotions[emotion] = confidence
-                    
-                    # Find primary emotion
-                    primary_emotion = max(emotions.items(), key=lambda x: x[1])
-                    
-                    # Map the new emotions to emojis and provide insights
-                    emotion_emoji = {
-                        'Angry': '😠',
-                        'Happy': '😊',
-                        'Natural': '😐',
-                        'Sad': '😢',
-                        'Disgust': '🤢',
-                        'Surprise': '😲'
-                    }
-                    
-                    emotion_insights = {
-                        'Angry': 'You appear to be frustrated. Taking deep breaths or stepping away might help.',
-                        'Happy': 'You appear to be in a positive mood! Keep that energy going!',
-                        'Natural': 'You appear to be in a calm, neutral state.',
-                        'Sad': 'You might be feeling down. Consider reaching out to friends or doing something you enjoy.',
-                        'Disgust': 'You seem to be experiencing strong negative feelings. It\'s okay to feel this way.',
-                        'Surprise': 'You appear to be surprised or shocked by something.'
-                    }
-                    
-                    # Use AI to find a real song for the emotion
-                    ai_song_recommendation = find_song_for_emotion(primary_emotion[0])
-                    
-                    return jsonify({
-                        'success': True,
-                        'primary_emotion': primary_emotion[0],
-                        'confidence': primary_emotion[1],
-                        'emotions': emotions,
-                        'predictions': predictions,
-                        'emoji': emotion_emoji.get(primary_emotion[0], '😐'),
-                        'insights': emotion_insights.get(primary_emotion[0], 'Emotion detected successfully.'),
-                        'ai_song_recommendation': ai_song_recommendation
-                    })
-                else:
-                    return jsonify({
-                        'success': False,
-                        'message': 'No emotions detected in the image'
-                    })
-            else:
-                # Mock response if no API key
-                os.remove(temp_filename)
+                print(f"✅ Emotion detection successful: {result}")
                 return jsonify({
-                    'success': True,
-                    'primary_emotion': 'Happy',
-                    'confidence': 0.85,
-                    'emotions': {'Happy': 0.85, 'Natural': 0.15},
-                    'message': 'Mock response (no API key configured)',
-                    'emoji': '😊',
-                    'insights': 'You appear to be in a positive mood! Keep that energy going!',
-                    'ai_song_recommendation': 'Happy - Pharrell Williams'
+                    "success": True,
+                    "emotions": result.get('predictions', []),
+                    "model": "emotion-detection-mikolaj/1"
                 })
+            else:
+                return jsonify({"error": "roboflow_api_key_not_configured"}), 500
                 
         except Exception as e:
             # Clean up temp file on error
             if os.path.exists(temp_filename):
                 os.remove(temp_filename)
-            print(f"❌ Roboflow error: {e}")
-            return jsonify({"error": "roboflow_error", "details": str(e)}), 500
+            raise e
             
     except Exception as e:
-        print(f"❌ Emotion detection error: {e}")
-        return jsonify({"error": "detection_failed", "details": str(e)}), 500
-
-@app.route('/api/emotions/music', methods=['POST'])
-def get_emotion_based_music():
-    """Get music recommendations and play music based on emotion"""
-    try:
-        data = request.get_json()
-        emotion = data.get('emotion')
-        song_recommendation = data.get('song_recommendation')
-        
-        if not emotion or not song_recommendation:
-            return jsonify({"error": "emotion and song_recommendation required"}), 400
-        
-        print(f"🎵 Getting music for emotion: {emotion}, AI recommendation: {song_recommendation}")
-        
-        # Search for the song on Spotify
-        sp = get_spotify_client()
-        if not sp:
-            return jsonify({"error": "Spotify not configured"}), 500
-        
-        # Search for the AI-recommended song
-        search_results = sp.search(q=song_recommendation, type='track', limit=5)
-        
-        if search_results['tracks']['items']:
-            # Get the best match
-            track = search_results['tracks']['items'][0]
-            
-            # Start playing the track
-            sp.start_playback(uris=[track['uri']])
-            
-            return jsonify({
-                'success': True,
-                'track': {
-                    'name': track['name'],
-                    'artist': track['artists'][0]['name'],
-                    'album': track['album']['name'],
-                    'cover_url': track['album']['images'][0]['url'] if track['album']['images'] else None,
-                    'uri': track['uri'],
-                    'preview_url': track['preview_url']
-                },
-                'emotion': emotion,
-                'ai_recommendation': song_recommendation,
-                'message': f'Now playing "{track["name"]}" by {track["artists"][0]["name"]}" for your {emotion.lower()} mood!'
-            })
-        else:
-            # If no exact match, try searching with emotion keywords
-            emotion_keywords = {
-                'Happy': 'upbeat happy music',
-                'Sad': 'melancholy sad songs',
-                'Angry': 'intense powerful music',
-                'Natural': 'calm relaxing music',
-                'Disgust': 'dark intense music',
-                'Surprise': 'energetic exciting music'
-            }
-            
-            fallback_search = emotion_keywords.get(emotion, 'music')
-            fallback_results = sp.search(q=fallback_search, type='track', limit=1)
-            
-            if fallback_results['tracks']['items']:
-                track = fallback_results['tracks']['items'][0]
-                sp.start_playback(uris=[track['uri']])
-                
-                return jsonify({
-                    'success': True,
-                    'track': {
-                        'name': track['name'],
-                        'artist': track['artists'][0]['name'],
-                        'album': track['album']['name'],
-                        'cover_url': track['album']['images'][0]['url'] if track['album']['images'] else None,
-                        'uri': track['uri'],
-                        'preview_url': track['preview_url']
-                    },
-                    'emotion': emotion,
-                    'ai_recommendation': song_recommendation,
-                    'fallback': True,
-                    'message': f'Playing "{track["name"]}" by {track["artists"][0]["name"]}" as a fallback for your {emotion.lower()} mood!'
-                })
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': 'No music found for this emotion'
-                }), 404
-                
-    except Exception as e:
-        print(f"❌ Emotion-based music error: {e}")
-        return jsonify({"error": "music_failed", "details": str(e)}), 500
+        print(f"Emotion detection error: {e}")
+        return jsonify({"error": "emotion_detection_failed", "details": str(e)}), 500
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
