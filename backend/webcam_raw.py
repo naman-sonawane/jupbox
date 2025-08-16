@@ -139,8 +139,7 @@ class WebcamNumbersDetector:
             number_class = pred.get('class', 'Unknown')
             confidence = pred.get('confidence', 0)
             
-            
-            if confidence > 0.4:  
+            if confidence > 0.15:  # Lowered from 0.4 to 0.15 for better sensitivity
                 if number_class == "0" and self.is_playing:
                     
                     self.is_playing = False

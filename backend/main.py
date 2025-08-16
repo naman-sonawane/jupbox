@@ -45,10 +45,10 @@ class WebcamNumbersDetector:
         self.cap = None
         self.frame_count = 0
         self.last_detection_time = 0
-        self.detection_cooldown = 1.0
+        self.detection_cooldown = 0.9  # Reduced from 1.0s to 0.5s for faster response
         self.is_playing = True
         self.last_toggle_time = 0
-        self.toggle_cooldown = 2.0
+        self.toggle_cooldown = 1.0  # Reduced from 2.0s to 1.0s for faster response
         self.running = False
         
     def start_webcam(self):
@@ -142,7 +142,7 @@ class WebcamNumbersDetector:
             number_class = pred.get('class', 'Unknown')
             confidence = pred.get('confidence', 0)
             
-            if confidence > 0.7:
+            if confidence > 0.15:  # Lowered from 0.7 to 0.15 for better sensitivity
                 if number_class == "0" and self.is_playing:
                     self.is_playing = False
                     self.last_toggle_time = current_time
@@ -160,6 +160,14 @@ class WebcamNumbersDetector:
                     self.control_spotify_playback(True)
                     
                     socketio.emit('playback_state_changed', {'is_playing': True})
+                
+                elif number_class == "1":
+                    # Skip to next track
+                    self.last_toggle_time = current_time
+                    print(f"⏭️ NEXT TRACK - Detected class '1' with {confidence:.1%} confidence")
+                    
+                    self.skip_to_next_track()
+                    socketio.emit('track_skipped', {'action': 'next'})
 
     def control_spotify_playback(self, should_play):
         try:
@@ -174,6 +182,15 @@ class WebcamNumbersDetector:
                 print(f"Spotify playback {'started' if should_play else 'paused'} via camera control")
         except Exception as e:
             print(f"Error controlling Spotify playback: {e}")
+
+    def skip_to_next_track(self):
+        try:
+            spotify_client = get_spotify_client()
+            if spotify_client:
+                spotify_client.next_track()
+                print(f"Spotify track skipped to next via camera control")
+        except Exception as e:
+            print(f"Error skipping to next track: {e}")
 
     def run(self):
         if not self.start_webcam():
@@ -222,7 +239,7 @@ class WebcamNumbersDetector:
                     
                     self.last_detection_time = current_time
                 
-                instruction_text = "Show '0' to PAUSE | Show '5' to PLAY"
+                instruction_text = "Show '0' to PAUSE | Show '5' to PLAY | Show '1' to SKIP"
                 cv2.putText(frame, instruction_text, (10, frame.shape[0] - 20), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
                 

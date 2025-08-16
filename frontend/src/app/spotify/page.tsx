@@ -6,6 +6,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import GestureControl from '@/components/GestureControl';
 
 // Use Electron API if available, otherwise fallback to localhost
 const SPOTIFY_API_BASE = typeof window !== 'undefined' && (window as any).electronAPI 
@@ -58,6 +59,7 @@ export default function SpotifyDashboard() {
     
     initializeSpotify();
     initializeWebSocket();
+    startGestureDetection();
     
     return () => {
       if (updateIntervalRef.current) {
@@ -235,6 +237,27 @@ export default function SpotifyDashboard() {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const startGestureDetection = async () => {
+    try {
+      console.log('🚀 Starting gesture detection automatically...');
+      const response = await fetch('http://localhost:5000/api/gesture/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        console.log('✅ Gesture detection started automatically');
+      } else {
+        console.warn('⚠️ Could not start gesture detection automatically:', data.message);
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not start gesture detection automatically:', error);
+    }
   };
 
   const getProgressPercentage = () => {
@@ -432,23 +455,31 @@ export default function SpotifyDashboard() {
           className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 mb-8"
         >
           <h2 className="text-3xl font-bold text-white mb-6">📹 Camera Control</h2>
-          <div className="space-y-4">
-            <p className="text-gray-300">
-              <strong>Gesture Detection:</strong> 
-              <span className={`ml-2 px-3 py-1 rounded-full text-sm ${
-                cameraStatus.status === 'connected' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                cameraStatus.status === 'connecting' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-                'bg-red-500/20 text-red-300 border border-red-500/30'
-              }`}>
-                {cameraStatus.message}
-              </span>
-            </p>
-            <div>
-              <p className="text-gray-300 mb-2"><strong>Instructions:</strong></p>
-              <ul className="list-disc list-inside space-y-1 text-gray-400">
-                <li>Show <strong>fist</strong> to <strong>PAUSE</strong> music</li>
-                <li>Show <strong>palm</strong> to <strong>PLAY</strong> music</li>
-              </ul>
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <p className="text-gray-300">
+                <strong>Gesture Detection:</strong> 
+                <span className={`ml-2 px-3 py-1 rounded-full text-sm ${
+                  cameraStatus.status === 'connected' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
+                  cameraStatus.status === 'connecting' ? 'bg-yellow-500/20 text-yellow-300 border border-green-500/30' :
+                  'bg-red-500/20 text-red-300 border border-red-500/30'
+                }`}>
+                  {cameraStatus.message}
+                </span>
+              </p>
+              <div>
+                <p className="text-gray-300 mb-2"><strong>Instructions:</strong></p>
+                <ul className="list-disc list-inside space-y-1 text-gray-400">
+                  <li>Show <strong>fist</strong> to <strong>PAUSE</strong> music</li>
+                  <li>Show <strong>palm</strong> to <strong>PLAY</strong> music</li>
+                </ul>
+              </div>
+            </div>
+            
+            {/* Automatic Gesture Control Status */}
+            <div className="border-t border-purple-500/20 pt-6">
+              <h3 className="text-xl font-semibold text-white mb-4">🎮 Auto Gesture Control Status</h3>
+              <GestureControl />
             </div>
           </div>
         </motion.div>
