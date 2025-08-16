@@ -31,6 +31,8 @@ export default function SpotifyPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [gestureStatus, setGestureStatus] = useState<'idle' | 'starting' | 'running' | 'stopping' | 'error'>('idle');
+  const [lastGesture, setLastGesture] = useState<string>('');
   const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -66,6 +68,21 @@ export default function SpotifyPage() {
         console.log('🎵 Playback state changed via gesture:', data);
         setIsPlaying(data.is_playing);
         setTimeout(updateCurrentTrack, 500);
+      });
+      
+      newSocket.on('gesture_detected', (data: any) => {
+        console.log('🎮 Gesture detected:', data);
+        // Show gesture notification
+        if (data.action === 'pause') {
+          setIsPlaying(false);
+          setLastGesture('👊 Fist detected - Music paused!');
+        } else if (data.action === 'play') {
+          setIsPlaying(true);
+          setLastGesture('✋ Palm detected - Music playing!');
+        }
+        
+        // Clear gesture notification after 3 seconds
+        setTimeout(() => setLastGesture(''), 3000);
       });
       
       newSocket.on('playback_state', (data: any) => {
@@ -224,6 +241,71 @@ export default function SpotifyPage() {
     return (currentTrack.progress_ms / currentTrack.duration_ms) * 100;
   };
 
+  // Gesture Control Functions
+  const startGestureDetection = async () => {
+    try {
+      setGestureStatus('starting');
+      const response = await fetch('http://localhost:5000/api/gesture/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setGestureStatus('running');
+        console.log('✅ Gesture detection started');
+      } else {
+        throw new Error(data.message || 'Failed to start gesture detection');
+      }
+    } catch (error) {
+      console.error('Error starting gesture detection:', error);
+      setGestureStatus('error');
+    }
+  };
+
+  const stopGestureDetection = async () => {
+    try {
+      setGestureStatus('stopping');
+      const response = await fetch('http://localhost:5000/api/gesture/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setGestureStatus('idle');
+        console.log('✅ Gesture detection stopped');
+      } else {
+        throw new Error(data.message || 'Failed to stop gesture detection');
+      }
+    } catch (error) {
+      console.error('Error stopping gesture detection:', error);
+      setGestureStatus('error');
+    }
+  };
+
+  const checkGestureStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/gesture/status');
+      const data = await response.json();
+      if (data.success) {
+        setGestureStatus(data.running ? 'running' : 'idle');
+      }
+    } catch (error) {
+      console.error('Error checking gesture status:', error);
+    }
+  };
+
+  useEffect(() => {
+    checkGestureStatus();
+    const interval = setInterval(checkGestureStatus, 5000); // Check status every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -268,6 +350,14 @@ export default function SpotifyPage() {
         </header>
         
         <main className="space-y-8">
+          {/* Gesture Notification */}
+          {lastGesture && (
+            <div className="bg-gradient-to-r from-green-500 to-blue-500 rounded-2xl p-6 text-white text-center animate-pulse">
+              <div className="text-2xl mb-2">🎮</div>
+              <div className="text-xl font-bold">{lastGesture}</div>
+            </div>
+          )}
+
           {/* Spotify Player Card */}
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="flex justify-between items-center mb-6">

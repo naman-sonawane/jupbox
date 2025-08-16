@@ -57,25 +57,6 @@ export default function HomePage() {
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          {/* Spotify Control */}
-          <Link href="/spotify" className="group">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:bg-white/15">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-2xl">🎵</span>
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Spotify Control</h3>
-              <p className="text-gray-300 leading-relaxed">
-                Control your Spotify playback with intuitive gestures. Play, pause, skip tracks, and search for music with simple hand movements.
-              </p>
-              <div className="mt-6 flex items-center text-green-400 group-hover:text-green-300 transition-colors">
-                <span className="font-medium">Get Started</span>
-                <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </div>
-            </div>
-          </Link>
-
           {/* Face Authentication */}
           <Link href="/auth" className="group">
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:bg-white/15">
@@ -95,18 +76,18 @@ export default function HomePage() {
             </div>
           </Link>
 
-          {/* Gesture Control */}
-          <Link href="/gestures" className="group">
+          {/* Spotify Control with Gestures */}
+          <Link href="/spotify" className="group">
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:bg-white/15">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-2xl">🎮</span>
+              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <span className="text-2xl">🎵</span>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Gesture Control</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">Spotify + Gestures</h3>
               <p className="text-gray-300 leading-relaxed">
-                Control your music with hand gestures. Show a fist to pause, palm to play, and more. Experience hands-free music control.
+                Control your Spotify playback with beautiful UI and hand gestures. Play, pause, skip tracks, and search for music with simple hand movements.
               </p>
-              <div className="mt-6 flex items-center text-purple-400 group-hover:text-purple-300 transition-colors">
-                <span className="font-medium">Start Gesturing</span>
+              <div className="mt-6 flex items-center text-green-400 group-hover:text-green-300 transition-colors">
+                <span className="font-medium">Get Started</span>
                 <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
@@ -130,7 +111,7 @@ export default function HomePage() {
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
             <div className="text-3xl font-bold text-white mb-2">🎮</div>
             <div className="text-2xl font-bold text-white">Gestures</div>
-            <div className="text-gray-300">Active</div>
+            <div className="text-gray-300">Integrated</div>
           </div>
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
             <div className="text-3xl font-bold text-white mb-2">⚡</div>
