@@ -72,11 +72,18 @@ def initialize_clients():
         
         # Ensure collection exists
         try:
-            qdrant.recreate_collection(
-                collection_name=COLLECTION_NAME,
-                vectors_config=VectorParams(size=DIMENSION, distance=Distance.COSINE)
-            )
-            print(f"✅ Created/Recreated Qdrant collection: {COLLECTION_NAME} with {DIMENSION} dimensions")
+            # Check if collection exists first
+            collections = qdrant.get_collections()
+            collection_names = [col.name for col in collections.collections]
+            
+            if COLLECTION_NAME not in collection_names:
+                qdrant.create_collection(
+                    collection_name=COLLECTION_NAME,
+                    vectors_config=VectorParams(size=DIMENSION, distance=Distance.COSINE)
+                )
+                print(f"✅ Created new Qdrant collection: {COLLECTION_NAME} with {DIMENSION} dimensions")
+            else:
+                print(f"✅ Using existing Qdrant collection: {COLLECTION_NAME}")
         except Exception as e:
             print(f"⚠️ Collection creation warning: {e}")
             
